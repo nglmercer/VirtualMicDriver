@@ -30,15 +30,33 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Use winget to install WDK (more reliable)
-        Write-Host "Installing WDK via winget..."
-        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
+        # Download WDK ISO
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
+        $wdkIso = "$env:TEMP\wdk.iso"
+        $mountPoint = "$env:TEMP\wdk_mount"
+        
+        Write-Host "Downloading WDK from $wdkUrl..."
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        
+        # Create mount point
+        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        
+        Write-Host "Mounting WDK ISO..."
+        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
+        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
+        $drivePath = "${driveLetter}:\"
+        
+        Write-Host "Installing WDK from $drivePath..."
+        # Run the WDK installer with silent mode
+        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 30
+        Start-Sleep -Seconds 60
         
-        # Refresh environment variables
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        # Dismount ISO
+        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
+        Remove-Item $wdkIso -Force
+        Remove-Item $mountPoint -Force -Recurse
         
         Write-Host "WDK installation completed"
         
@@ -136,15 +154,33 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Use winget to install WDK (more reliable)
-        Write-Host "Installing WDK via winget..."
-        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
+        # Download WDK ISO
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
+        $wdkIso = "$env:TEMP\wdk.iso"
+        $mountPoint = "$env:TEMP\wdk_mount"
+        
+        Write-Host "Downloading WDK from $wdkUrl..."
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        
+        # Create mount point
+        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        
+        Write-Host "Mounting WDK ISO..."
+        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
+        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
+        $drivePath = "${driveLetter}:\"
+        
+        Write-Host "Installing WDK from $drivePath..."
+        # Run the WDK installer with silent mode
+        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 30
+        Start-Sleep -Seconds 60
         
-        # Refresh environment variables
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        # Dismount ISO
+        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
+        Remove-Item $wdkIso -Force
+        Remove-Item $mountPoint -Force -Recurse
         
         Write-Host "WDK installation completed"
         
@@ -200,15 +236,33 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Use winget to install WDK (more reliable)
-        Write-Host "Installing WDK via winget..."
-        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
+        # Download WDK ISO
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
+        $wdkIso = "$env:TEMP\wdk.iso"
+        $mountPoint = "$env:TEMP\wdk_mount"
+        
+        Write-Host "Downloading WDK from $wdkUrl..."
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        
+        # Create mount point
+        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        
+        Write-Host "Mounting WDK ISO..."
+        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
+        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
+        $drivePath = "${driveLetter}:\"
+        
+        Write-Host "Installing WDK from $drivePath..."
+        # Run the WDK installer with silent mode
+        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 30
+        Start-Sleep -Seconds 60
         
-        # Refresh environment variables
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        # Dismount ISO
+        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
+        Remove-Item $wdkIso -Force
+        Remove-Item $mountPoint -Force -Recurse
         
         Write-Host "WDK installation completed"
         
@@ -290,15 +344,33 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Use winget to install WDK (more reliable)
-        Write-Host "Installing WDK via winget..."
-        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
+        # Download WDK ISO
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
+        $wdkIso = "$env:TEMP\wdk.iso"
+        $mountPoint = "$env:TEMP\wdk_mount"
+        
+        Write-Host "Downloading WDK from $wdkUrl..."
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        
+        # Create mount point
+        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        
+        Write-Host "Mounting WDK ISO..."
+        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
+        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
+        $drivePath = "${driveLetter}:\"
+        
+        Write-Host "Installing WDK from $drivePath..."
+        # Run the WDK installer with silent mode
+        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 30
+        Start-Sleep -Seconds 60
         
-        # Refresh environment variables
-        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+        # Dismount ISO
+        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
+        Remove-Item $wdkIso -Force
+        Remove-Item $mountPoint -Force -Recurse
         
         Write-Host "WDK installation completed"
         
