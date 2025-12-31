@@ -19,6 +19,10 @@ VOID SafeStringCopy(
         return;
     }
     
-    // Usar RtlStringCchCopyW para copia segura
-    RtlStringCchCopyW(dest, destSize, src);
+    // Manual safe string copy for kernel mode
+    SIZE_T i;
+    for (i = 0; i < destSize - 1 && src[i] != L'\0'; i++) {
+        dest[i] = src[i];
+    }
+    dest[i] = L'\0';
 }

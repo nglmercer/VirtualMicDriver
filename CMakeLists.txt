@@ -99,13 +99,15 @@ endif()
 
 # Compiler configuration
 if(MSVC)
+    # Override Debug build flags to disable RTC (not available in kernel mode)
+    set(CMAKE_C_FLAGS_DEBUG "/kernel /GS- /Gz /MTd /Zi /Od /D _DEBUG")
+    
     # Compiler options for kernel drivers
     add_compile_options(/kernel)
     add_compile_options(/GS-)
     add_compile_options(/Gz)
     add_compile_options(/Oi)
     add_compile_options(/Oy-)
-    # Note: Do NOT use /MT for kernel drivers - kernel has its own runtime
     
     # Preprocessor definitions
     add_compile_definitions(DBG=1)
@@ -125,8 +127,7 @@ add_library(${DRIVER_NAME} MODULE ${DRIVER_SOURCES})
 # Configure driver properties - Build as real driver
 set_target_properties(${DRIVER_NAME} PROPERTIES
     SUFFIX ".sys"
-    LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry /MANIFEST:NO"
-    WIN32_EXECUTABLE TRUE
+    LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry /MANIFEST:NO /NODEFAULTLIB:libcmtd /NODEFAULTLIB:libcmt /NODEFAULTLIB:libcd /NODEFAULTLIB:libcpmt /NODEFAULTLIB:kernel32 /NODEFAULTLIB:user32 /NODEFAULTLIB:gdi32 /NODEFAULTLIB:winspool /NODEFAULTLIB:shell32 /NODEFAULTLIB:ole32 /NODEFAULTLIB:oleaut32 /NODEFAULTLIB:uuid /NODEFAULTLIB:comdlg32 /NODEFAULTLIB:advapi32"
     LINKER_LANGUAGE C
 )
 
@@ -139,6 +140,16 @@ target_include_directories(${DRIVER_NAME} PRIVATE
     ${WDK_SHARED_INCLUDE_PATH}
 )
 
+# Target-specific compile options to override defaults
+target_compile_options(${DRIVER_NAME} PRIVATE
+    /MTd
+    /GS-
+    /Gz
+    /Oi
+    /Oy-
+    /RTC-
+)
+
 target_link_directories(${DRIVER_NAME} PRIVATE
     ${WDK_LIB_PATH}
 )
@@ -148,7 +159,6 @@ target_link_libraries(${DRIVER_NAME}
     ntoskrnl.lib
     hal.lib
     wmilib.lib
-    ntstrsafe.lib
 )
 
 # Informational message
