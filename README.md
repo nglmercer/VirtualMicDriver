@@ -57,25 +57,51 @@ VirtualMicDriver/
 3. **Windows Driver Kit (WDK)** versión 10.0.19041 o superior (OBLIGATORIO)
    - Descargar desde: https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk
    - Instalar el WDK completo (incluye Windows SDK)
-4. **CMake** 3.16 o superior
+4. **CMake** 3.16 o superior (NO viene con Visual Studio)
+   - Descargar desde: https://cmake.org/download/
+   - Instalar y seleccionar "Add CMake to the system PATH"
 5. **PowerShell** 5.1 o superior
 6. **Certificado de firma de código** (para producción)
 
 ### Instalación del WDK
-```powershell
-# Descargar el instalador del WDK desde:
-# https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk
 
-# Ejecutar el instalador y seleccionar:
-# - Windows Driver Kit (WDK)
-# - Windows SDK
-# - Visual Studio extension para drivers
+⚠️ **IMPORTANTE: Windows SDK ≠ Windows Driver Kit (WDK)**
 
-# El WDK se instalará en:
-# C:\Program Files (x86)\Windows Kits\10\
+El Windows SDK que viene con Visual Studio NO es suficiente. Necesitas el Windows Driver Kit completo, que incluye componentes adicionales para desarrollo de drivers de kernel (directorio `km/`).
 
-# El proyecto detectará automáticamente la versión instalada
-```
+#### Pasos de instalación:
+
+1. **Descargar el WDK:**
+   ```
+   https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk
+   ```
+
+2. **Ejecutar el instalador y seleccionar:**
+   - ✓ **Windows Driver Kit (WDK)** - OBLIGATORIO
+   - ✓ **Windows Driver Kit - Windows 10, 11, and Server 2022**
+   - ✓ **Windows SDK** (si se ofrece en el instalador)
+   - ✓ **Visual Studio extension para drivers**
+
+3. **Verificar instalación completa:**
+   ```powershell
+   # Verificar que exista el directorio km/
+   Test-Path "C:\Program Files (x86)\Windows Kits\10\Include\10.*\km"
+   
+   # Debería retornar: True
+   
+   # Si retorna False, significa que solo tienes Windows SDK, no el WDK completo
+   ```
+
+4. **Ubicación de instalación:**
+   ```
+   C:\Program Files (x86)\Windows Kits\10\
+   ```
+
+5. **El proyecto detectará automáticamente la versión instalada más reciente**
+
+#### Cómo saber si tienes el WDK correcto:
+- ✅ **Correcto:** Existe `C:\Program Files (x86)\Windows Kits\10\Include\10.x.x.x\km\`
+- ❌ **Incorrecto:** Solo existe `C:\Program Files (x86)\Windows Kits\10\Include\10.x.x.x\shared\` y `um\`
 
 ### Activar Modo de Prueba
 ```cmd
