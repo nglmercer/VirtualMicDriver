@@ -41,7 +41,7 @@ jobs:
         $wdkIncludePath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.22000.0\km"
         $wdkLibPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Lib\10.0.22000.0\km\x64"
         
-        if (Test-Path $wdkIncludePath -and Test-Path $wdkLibPath) {
+        if ((Test-Path $wdkIncludePath) -and (Test-Path $wdkLibPath)) {
           Write-Host "✅ WDK found"
           echo "wdk_available=true" >> $env:GITHUB_OUTPUT
         } else {
