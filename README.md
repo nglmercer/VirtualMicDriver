@@ -54,17 +54,50 @@ VirtualMicDriver/
 ### Software Necesario
 1. **Windows 10/11 x64** con modo de prueba activado
 2. **Visual Studio 2019/2022** con workload "Desktop development with C++"
-3. **Windows Driver Kit (WDK)** versión 10.0.22000 o superior
-4. **Windows SDK** correspondiente
-5. **CMake** 3.16 o superior
-6. **PowerShell** 5.1 o superior
-7. **Certificado de firma de código** (para producción)
+3. **Windows Driver Kit (WDK)** versión 10.0.19041 o superior (OBLIGATORIO)
+   - Descargar desde: https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk
+   - Instalar el WDK completo (incluye Windows SDK)
+4. **CMake** 3.16 o superior
+5. **PowerShell** 5.1 o superior
+6. **Certificado de firma de código** (para producción)
+
+### Instalación del WDK
+```powershell
+# Descargar el instalador del WDK desde:
+# https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk
+
+# Ejecutar el instalador y seleccionar:
+# - Windows Driver Kit (WDK)
+# - Windows SDK
+# - Visual Studio extension para drivers
+
+# El WDK se instalará en:
+# C:\Program Files (x86)\Windows Kits\10\
+
+# El proyecto detectará automáticamente la versión instalada
+```
 
 ### Activar Modo de Prueba
 ```cmd
 # Como administrador
 bcdedit /set testsigning on
-# Reiniciar el sistema
+
+# Verificar el estado
+bcdedit
+
+# Reiniciar el sistema para que los cambios surtan efecto
+```
+
+### Verificar Instalación
+```powershell
+# Verificar WDK instalado
+Get-ChildItem "C:\Program Files (x86)\Windows Kits\10\Include"
+
+# Verificar Visual Studio
+Get-ChildItem "C:\Program Files\Microsoft Visual Studio"
+
+# Verificar CMake
+cmake --version
 ```
 
 ## 🚀 Compilación Automatizada

@@ -22,24 +22,53 @@ set(INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Opción para construir versión mock (sin WDK)
-option(BUILD_MOCK_DRIVER "Construir versión mock sin WDK" OFF)
-
 # Verificar si estamos en Windows
 if(NOT WIN32)
     message(FATAL_ERROR "Este proyecto solo puede compilarse en Windows")
 endif()
 
+# Detectar automáticamente la versión del WDK instalada
+set(WDK_BASE_PATH "C:/Program Files (x86)/Windows Kits/10")
+set(WDK_INCLUDE_BASE_PATH "${WDK_BASE_PATH}/Include")
+set(WDK_LIB_BASE_PATH "${WDK_BASE_PATH}/Lib")
+
+if(NOT EXISTS "${WDK_INCLUDE_BASE_PATH}")
+    message(FATAL_ERROR "Windows Driver Kit (WDK) no encontrado en ${WDK_INCLUDE_BASE_PATH}")
+    message(FATAL_ERROR "Por favor, instale el Windows Driver Kit para compilar este driver.")
+    message(FATAL_ERROR "Descargar desde: https://docs.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk")
+endif()
+
+# Buscar la versión más reciente del WDK instalada
+file(GLOB WDK_VERSIONS LIST_DIRECTORIES true "${WDK_INCLUDE_BASE_PATH}/*")
+list(SORT WDK_VERSIONS COMPARE NATURAL ORDER DESCENDING)
+list(GET WDK_VERSIONS 0 WDK_LATEST_VERSION)
+
+# Extraer solo el número de versión
+get_filename_component(WDK_VERSION ${WDK_LATEST_VERSION} NAME)
+
+message(STATUS "WDK version detected: ${WDK_VERSION}")
+
+# Configurar rutas del WDK
+set(WDK_INCLUDE_PATH "${WDK_INCLUDE_BASE_PATH}/${WDK_VERSION}/km")
+set(WDK_SHARED_INCLUDE_PATH "${WDK_INCLUDE_BASE_PATH}/${WDK_VERSION}/shared")
+set(WDK_LIB_PATH "${WDK_LIB_BASE_PATH}/${WDK_VERSION}/km/x64")
+
+if(NOT EXISTS "${WDK_INCLUDE_PATH}")
+    message(FATAL_ERROR "WDK headers not found in ${WDK_INCLUDE_PATH}")
+endif()
+
+if(NOT EXISTS "${WDK_LIB_PATH}")
+    message(FATAL_ERROR "WDK libraries not found in ${WDK_LIB_PATH}")
+endif()
+
 # Configuración del compilador
 if(MSVC)
-    if(NOT BUILD_MOCK_DRIVER)
-        # Opciones del compilador para drivers de kernel (solo con WDK)
-        add_compile_options(/kernel)
-        add_compile_options(/GS-)
-        add_compile_options(/Gz)
-        add_compile_options(/Oi)
-        add_compile_options(/Oy-)
-    endif()
+    # Opciones del compilador para drivers de kernel
+    add_compile_options(/kernel)
+    add_compile_options(/GS-)
+    add_compile_options(/Gz)
+    add_compile_options(/Oi)
+    add_compile_options(/Oy-)
     
     # Definiciones del preprocesador
     add_compile_definitions(DBG=1)
@@ -48,60 +77,31 @@ endif()
 # Crear target del driver
 add_library(${DRIVER_NAME} MODULE ${DRIVER_SOURCES})
 
-# Configurar propiedades del driver
-if(BUILD_MOCK_DRIVER)
-    # Construir como aplicación de consola para pruebas
-    set_target_properties(${DRIVER_NAME} PROPERTIES
-        SUFFIX ".exe"
-    )
-    message(STATUS "==========================================")
-    message(STATUS "MODO MOCK ACTIVADO - Sin WDK")
-    message(STATUS "Construyendo aplicación de prueba en lugar de driver")
-    message(STATUS "==========================================")
-else()
-    # Construir como driver real
-    set_target_properties(${DRIVER_NAME} PROPERTIES
-        SUFFIX ".sys"
-        LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry"
-    )
-endif()
+# Configurar propiedades del driver - Construir como driver real
+set_target_properties(${DRIVER_NAME} PROPERTIES
+    SUFFIX ".sys"
+    LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry"
+)
 
 # Incluir directorios de encabezados
 target_include_directories(${DRIVER_NAME} PRIVATE ${INCLUDE_DIRS})
 
-# Incluir directorios de WDK (solo si están disponibles y no es mock)
-if(NOT BUILD_MOCK_DRIVER AND EXISTS "C:/Program Files (x86)/Windows Kits/10/Include")
-    target_include_directories(${DRIVER_NAME} PRIVATE
-        "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/km"
-        "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/shared"
-    )
-    
-    target_link_directories(${DRIVER_NAME} PRIVATE
-        "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/km/x64"
-    )
-elseif(BUILD_MOCK_DRIVER)
-    # Para modo mock, usar headers mock predefinidos
-    message(STATUS "Usando headers mock para modo sin WDK")
-    
-    target_include_directories(${DRIVER_NAME} PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/mock"
-    )
-endif()
+# Incluir directorios de WDK
+target_include_directories(${DRIVER_NAME} PRIVATE
+    ${WDK_INCLUDE_PATH}
+    ${WDK_SHARED_INCLUDE_PATH}
+)
+
+target_link_directories(${DRIVER_NAME} PRIVATE
+    ${WDK_LIB_PATH}
+)
 
 # Librerías necesarias
-if(NOT BUILD_MOCK_DRIVER)
-    target_link_libraries(${DRIVER_NAME}
-        ntoskrnl.lib
-        hal.lib
-        wmilib.lib
-    )
-else()
-    # Para modo mock, usar librerías estándar
-    target_link_libraries(${DRIVER_NAME}
-        kernel32.lib
-        user32.lib
-    )
-endif()
+target_link_libraries(${DRIVER_NAME}
+    ntoskrnl.lib
+    hal.lib
+    wmilib.lib
+)
 
 # Mensaje informativo
 message(STATUS "==========================================")
@@ -116,14 +116,15 @@ message(STATUS "  - src/common/             : Utilidades comunes")
 message(STATUS "  - include/                : Archivos de encabezado")
 message(STATUS "  - tests/                  : Pruebas automatizadas")
 message(STATUS "==========================================")
-message(STATUS "IMPORTANTE: Para compilar este driver necesitas:")
-message(STATUS "1. Windows Driver Kit (WDK) instalado")
-message(STATUS "2. Visual Studio con soporte para drivers")
-message(STATUS "3. Certificado de firma de código (para producción)")
-message(STATUS "4. Modo de prueba de Windows activado (para desarrollo)")
+message(STATUS "REQUISITOS PARA COMPILAR:")
+message(STATUS "✓ Windows Driver Kit (WDK) instalado")
+message(STATUS "✓ Visual Studio con soporte para drivers")
+message(STATUS "⚠ Certificado de firma de código (para producción)")
+message(STATUS "⚠ Modo de prueba de Windows activado (para desarrollo)")
 message(STATUS "==========================================")
-message(STATUS "Este driver es para fines educativos y requiere")
-message(STATUS "conocimientos avanzados de desarrollo de drivers.")
+message(STATUS "Para habilitar modo de prueba de Windows:")
+message(STATUS "  1. Ejecutar: bcdedit /set testsigning on")
+message(STATUS "  2. Reiniciar el sistema")
 message(STATUS "==========================================")
 
 # Opciones adicionales para desarrollo

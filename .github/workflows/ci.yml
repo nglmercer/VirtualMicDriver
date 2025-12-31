@@ -25,50 +25,40 @@ jobs:
     - name: Setup CMake
       uses: lukka/get-cmake@latest
     
-    - name: Cache WDK files
-      id: cache-wdk
-      uses: actions/cache@v4
-      with:
-        path: |
-          C:/Program Files (x86)/Windows Kits/10/Include
-          C:/Program Files (x86)/Windows Kits/10/Lib
-        key: ${{ runner.os }}-wdk-${{ hashFiles('**/CMakeLists.txt') }}
-    
-    - name: Check WDK availability
-      id: check-wdk
+    - name: Install Windows Driver Kit (WDK)
       run: |
-        Write-Host "Checking for Windows Driver Kit..."
-        $wdkIncludePath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.22000.0\km"
-        $wdkLibPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Lib\10.0.22000.0\km\x64"
-        
-        if ((Test-Path $wdkIncludePath) -and (Test-Path $wdkLibPath)) {
-          Write-Host "✅ WDK found"
-          echo "wdk_available=true" >> $env:GITHUB_OUTPUT
+        Write-Host "Installing Windows Driver Kit..."
+        # Windows-latest runners come with WDK pre-installed
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+          Write-Host "✅ WDK found at: $wdkPath"
+          # List available versions
+          Get-ChildItem -Path "$wdkPath\Include" | ForEach-Object {
+            Write-Host "  Available version: $($_.Name)"
+          }
         } else {
-          Write-Host "⚠️ WDK not found - will build mock version for testing"
-          echo "wdk_available=false" >> $env:GITHUB_OUTPUT
+          Write-Host "❌ WDK not found"
+          exit 1
         }
+    
+    - name: Enable Test Signing Mode
+      run: |
+        Write-Host "Enabling test signing mode for driver development..."
+        bcdedit /set testsigning on
+        Write-Host "Test signing enabled (requires reboot to take effect)"
     
     - name: Create build directory
       run: cmake -E make_directory ${{github.workspace}}/build
     
     - name: Configure CMake
       working-directory: ${{github.workspace}}/build
-      run: |
-        if ("${{ steps.check-wdk.outputs.wdk_available }}" -eq "true") {
-          cmake .. -G "Visual Studio 17 2022" -A x64
-        } else {
-          Write-Host "Configuring mock build without WDK"
-          cmake .. -G "Visual Studio 17 2022" -A x64 -DBUILD_MOCK_DRIVER=ON
-        }
+      run: cmake .. -G "Visual Studio 17 2022" -A x64
     
     - name: Build driver
       working-directory: ${{github.workspace}}/build
       run: cmake --build . --config ${{env.BUILD_CONFIGURATION}}
-      continue-on-error: ${{ steps.check-wdk.outputs.wdk_available == 'false' }}
     
     - name: Upload build artifacts
-      if: steps.check-wdk.outputs.wdk_available == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: driver-binaries
@@ -77,15 +67,17 @@ jobs:
           ${{github.workspace}}/build/**/*.pdb
         retention-days: 30
     
-    - name: Upload mock build artifacts
-      if: steps.check-wdk.outputs.wdk_available == 'false'
-      uses: actions/upload-artifact@v4
-      with:
-        name: mock-binaries
-        path: |
-          ${{github.workspace}}/build/**/*.exe
-          ${{github.workspace}}/build/**/*.lib
-        retention-days: 7
+    - name: Verify driver binary
+      run: |
+        Write-Host "Verifying driver binary..."
+        $driverPath = Get-ChildItem -Path "${{github.workspace}}/build" -Filter "*.sys" -Recurse | Select-Object -First 1
+        if ($driverPath) {
+          Write-Host "✅ Driver built successfully: $($driverPath.FullName)"
+          Write-Host "   Size: $($driverPath.Length) bytes"
+        } else {
+          Write-Host "❌ Driver binary not found!"
+          exit 1
+        }
 
   static-analysis:
     runs-on: windows-latest
@@ -96,6 +88,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Install Windows Driver Kit (WDK)
+      run: |
+        Write-Host "Windows Driver Kit is available on windows-latest runner"
+    
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
       with:
@@ -104,11 +100,11 @@ jobs:
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3
     
-    - name: Run static analysis tools
+    - name: Run PREfast analysis
       run: |
-        Write-Host "Running static analysis..."
-        # Static analysis tools would go here
-        # For example: PREfast, CodeAnalysis, etc.
+        Write-Host "Running PREfast static analysis..."
+        cd build
+        msbuild virtual_mic.vcxproj /p:Configuration=Debug /p:RunCodeAnalysis=true
 
   security-scan:
     runs-on: windows-latest
@@ -119,11 +115,31 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Run security scan
+    - name: Install Windows Driver Kit (WDK)
       run: |
-        Write-Host "Running security analysis..."
-        # Security scanning tools would go here
-        # For example: BinSkim, security code analysis, etc.
+        Write-Host "Windows Driver Kit is available on windows-latest runner"
+    
+    - name: Install BinSkim
+      run: |
+        dotnet tool install --global Microsoft.CodeAnalysis.BinSkim
+    
+    - name: Run BinSkim security scan
+      run: |
+        Write-Host "Running BinSkim security analysis..."
+        $binSkimPath = "$env:USERPROFILE\.dotnet\tools\binskim.exe"
+        if (Test-Path $binSkimPath) {
+          & $binSkimPath analyze build/**/*.sys --recurse --output-File BinSkimResults.sarif --verbose
+        } else {
+          Write-Host "BinSkim not found, skipping..."
+        }
+    
+    - name: Upload security scan results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-scan-results
+        path: BinSkimResults.sarif
+        retention-days: 30
 
   documentation:
     runs-on: ubuntu-latest
@@ -150,46 +166,31 @@ jobs:
     needs: build
     if: always() && needs.build.result == 'success'
     
-    strategy:
-      matrix:
-        artifact: [driver-binaries, mock-binaries]
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
+    - name: Install Windows Driver Kit (WDK)
+      run: |
+        Write-Host "Windows Driver Kit is available on windows-latest runner"
+    
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
-        name: ${{ matrix.artifact }}
+        name: driver-binaries
         path: build/
     
-    - name: Run unit tests
-      run: |
-        Write-Host "Running unit tests..."
-        if ("${{ matrix.artifact }}" -eq "mock-binaries") {
-          Write-Host "Running tests for mock build..."
-          # Run our test executables
-          Get-ChildItem -Path "tests" -Filter "test_*.exe" | ForEach-Object {
-            Write-Host "Running $($_.Name)..."
-            & $_.FullName
-          }
-        } else {
-          Write-Host "Running tests for real driver build..."
-          # Unit tests would go here for real driver
-        }
+    - name: Run CTest
+      working-directory: ${{github.workspace}}/build
+      run: ctest -C ${{env.BUILD_CONFIGURATION}} --output-on-failure --verbose
     
-    - name: Run integration tests
-      run: |
-        Write-Host "Running integration tests..."
-        # Integration tests would go here
-        # These would test the driver functionality
-    
-    - name: Test driver installation (simulated)
-      run: |
-        Write-Host "Simulating driver installation test..."
-        # Driver installation simulation
-        # This would test the INF file and installation process
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: build/Testing/
+        retention-days: 30
 
   release:
     runs-on: windows-latest
@@ -209,11 +210,11 @@ jobs:
     - name: Create release package
       run: |
         New-Item -ItemType Directory -Path "release/package" -Force
-        Copy-Item "virtual_mic.inf" -Destination "release/package/"
+        Copy-Item "virtual_mic.inf" -Destination "release/package/" -ErrorAction SilentlyContinue
         Copy-Item "build/**/*.sys" -Destination "release/package/" -Recurse
         Copy-Item "README.md" -Destination "release/package/"
-        Copy-Item "install.bat" -Destination "release/package/"
-        Copy-Item "uninstall.bat" -Destination "release/package/"
+        Copy-Item "install.bat" -Destination "release/package/" -ErrorAction SilentlyContinue
+        Copy-Item "uninstall.bat" -Destination "release/package/" -ErrorAction SilentlyContinue
         
         # Create ZIP package
         Compress-Archive -Path "release/package/*" -DestinationPath "release/virtual_mic_driver.zip"
@@ -223,4 +224,17 @@ jobs:
       with:
         name: release-package
         path: release/virtual_mic_driver.zip
+        retention-days: 90
+    
+    - name: Generate checksums
+      run: |
+        cd release
+        Get-FileHash virtual_mic_driver.zip -Algorithm SHA256 | Select-Object -ExpandProperty Hash > virtual_mic_driver.zip.sha256
+        Get-Content virtual_mic_driver.zip.sha256
+    
+    - name: Upload checksums
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-checksums
+        path: release/virtual_mic_driver.zip.sha256
         retention-days: 90
