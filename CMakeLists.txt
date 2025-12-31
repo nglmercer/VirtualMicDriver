@@ -105,9 +105,18 @@ if(MSVC)
     add_compile_options(/Gz)
     add_compile_options(/Oi)
     add_compile_options(/Oy-)
+    # Note: Do NOT use /MT for kernel drivers - kernel has its own runtime
     
     # Preprocessor definitions
     add_compile_definitions(DBG=1)
+    
+    # Target architecture definitions (required for kernel drivers)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        add_compile_definitions(_WIN64)
+        add_compile_definitions(_AMD64_)
+    elseif(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        add_compile_definitions(_X86_)
+    endif()
 endif()
 
 # Create driver target
@@ -116,7 +125,9 @@ add_library(${DRIVER_NAME} MODULE ${DRIVER_SOURCES})
 # Configure driver properties - Build as real driver
 set_target_properties(${DRIVER_NAME} PROPERTIES
     SUFFIX ".sys"
-    LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry"
+    LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry /MANIFEST:NO"
+    WIN32_EXECUTABLE TRUE
+    LINKER_LANGUAGE C
 )
 
 # Include header directories
@@ -137,6 +148,7 @@ target_link_libraries(${DRIVER_NAME}
     ntoskrnl.lib
     hal.lib
     wmilib.lib
+    ntstrsafe.lib
 )
 
 # Informational message

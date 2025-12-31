@@ -98,7 +98,8 @@ NTSTATUS HandleGetStats(
     // Llenar estadísticas básicas
     stats->IsActive = deviceExtension->IsInitialized;
     stats->SamplesProcessed = 0; // TODO: Implementar contador de muestras
-    stats->BufferUsage = (FLOAT)GetBufferUsedSpace(deviceExtension) / deviceExtension->BufferSize;
+    // Calculate buffer usage as percentage (0-100)
+    stats->BufferUsage = (GetBufferUsedSpace(deviceExtension) * 100) / deviceExtension->BufferSize;
     stats->Underruns = 0; // TODO: Implementar contador de underruns
     stats->Overruns = 0;  // TODO: Implementar contador de overruns
     stats->UptimeMs = 0;  // TODO: Implementar contador de tiempo activo

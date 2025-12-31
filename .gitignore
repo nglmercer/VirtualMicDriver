@@ -1,0 +1,234 @@
+# CMake build directories
+build/
+out/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+*.cmake
+
+# Visual Studio files
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VC.db
+*.VC.opendb
+*.psess
+*.vsp
+*.vspx
+*.sap
+*.sdf
+*.opensdf
+*.cachefile
+*.VC.db
+*.VC.opendb
+*.iobj
+*.ipdb
+*.ilk
+*.meta
+*.obj
+*.pch
+*.pdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.tmp
+*.tmp_proj
+*.log
+*.vspscc
+*.vssscc
+*.builds
+*.pidb
+*.svclog
+*.scc
+
+# Windows Driver Kit (WDK) generated files
+*.sys
+*.inf
+*.cat
+*.cer
+*.pfx
+*.stx
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Driver specific
+*.sys
+*.pdb
+*.lib
+*.exp
+*.def
+
+# Test files
+test_results/
+*.trx
+*.coverage
+*.coveragexml
+
+# Documentation generated
+docs/html/
+docs/latex/
+docs/man/
+Doxyfile.bak
+
+# PowerShell
+*.ps1xml
+*.pssc
+*.reg
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.DS_Store
+._*
+
+# IDE specific
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+*.log
+
+# Archives
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+*.war
+*.ear
+*.sar
+*.class
+
+# Profiling
+*.prof
+*.aux
+*.dvi
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+*.lb
+
+# Logs
+*.log
+logs/
+log/
+
+# Backup files
+*.backup
+*.old
+*.orig
+
+# Local configuration
+local_config.h
+config_local.h
+*.local
+
+# Certificates and keys (security)
+*.pem
+*.key
+*.crt
+*.csr
+*.jks
+*.keystore
+*.p12
+*.pfx
+
+# Driver installation files
+*.cat
+*.cer
+*.inf
+*.sys
+
+# Windows SDK/WDK files that might be copied
+wdk/
+sdk/
+
+# Build output directories
+x64/
+x86/
+Debug/
+Release/
+Win32/
+x64/
+bin/
+lib/
+obj/
+
+# Test certificates for driver signing
+TestCert_*
+*.testcert
+*.test.pvk
+*.test.spc
+
+# Driver package files
+*.cab
+*.hck
+*.hlk
+*.wtl
+*.wtlx
+
+# Windows Hardware Lab Kit (HLK) files
+HLK/
+*.hlk
+*.hckx
+*.wtl
+*.wtlx
+
+# Driver store files
+DriverStore/
+INFCACHE.1
+
+# Windows Update files
+*.wu
+*.wuf
+
+# Virtual machine files (if testing in VMs)
+*.vmdk
+*.vhd
+*.vhdx
+*.vmx
+*.vmxf
+*.vmsd
+*.nvram
+*.vmem
+*.vmsn
+*.vmss
+*.vmtm
+*.vmwarevm
+*.log
+*.vm*

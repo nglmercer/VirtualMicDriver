@@ -2,7 +2,6 @@
 #define VIRTUAL_MIC_H
 
 #include <ntddk.h>
-#include <wdf.h>
 #include <ntstrsafe.h>
 
 // IOCTL Codes
@@ -36,7 +35,7 @@ typedef struct _SET_FORMAT_REQUEST {
 typedef struct _DRIVER_STATS {
     BOOLEAN IsActive;
     ULONG64 SamplesProcessed;
-    FLOAT BufferUsage;
+    ULONG BufferUsage; // Percentage as integer (0-100)
     ULONG Underruns;
     ULONG Overruns;
     AUDIO_FORMAT CurrentFormat;

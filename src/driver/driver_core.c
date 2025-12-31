@@ -13,20 +13,10 @@ NTSTATUS InitializeDevice(
     NTSTATUS status;
     PDEVICE_OBJECT deviceObject = NULL;
     PDEVICE_EXTENSION deviceExtension;
-    WDF_DRIVER_CONFIG config;
+    
+    UNREFERENCED_PARAMETER(RegistryPath);
     
     DEBUG_PRINT("DriverEntry called");
-    
-    // Inicializar WDF
-    WDF_DRIVER_CONFIG_INIT(&config, WDF_NO_EVENT_CALLBACK);
-    config.DriverInitFlags = WdfDriverInitNonPnpDriver;
-    config.EvtDriverUnload = DriverUnload;
-    
-    status = WdfDriverCreate(DriverObject, RegistryPath, WDF_NO_OBJECT_ATTRIBUTES, &config, WDF_NO_HANDLE);
-    if (!NT_SUCCESS(status)) {
-        ERROR_PRINT("Failed to create WDF driver: 0x%X", status);
-        return status;
-    }
     
     // Crear dispositivo
     status = IoCreateDevice(
@@ -87,8 +77,8 @@ VOID CleanupDevice(
 {
     PDEVICE_EXTENSION deviceExtension;
     
-    if (deviceObject != NULL) {
-        deviceExtension = (PDEVICE_EXTENSION)deviceObject->DeviceExtension;
+    if (DeviceObject != NULL) {
+        deviceExtension = (PDEVICE_EXTENSION)DeviceObject->DeviceExtension;
         
         if (deviceExtension->IsInitialized) {
             // Liberar recursos
@@ -98,7 +88,7 @@ VOID CleanupDevice(
             IoDeleteSymbolicLink(&deviceExtension->SymbolicLinkName);
         }
         
-        IoDeleteDevice(deviceObject);
+        IoDeleteDevice(DeviceObject);
     }
     
     DEBUG_PRINT("Device cleanup completed");
