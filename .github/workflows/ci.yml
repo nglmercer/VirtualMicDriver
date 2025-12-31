@@ -26,48 +26,36 @@ jobs:
       uses: lukka/get-cmake@latest
     
     - name: Install Windows Driver Kit (WDK)
+      shell: pwsh
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # First, install Windows SDK if not present
-        Write-Host "Checking Windows SDK..."
-        $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
-        if (!(Test-Path $sdkPath)) {
-            Write-Host "Installing Windows SDK..."
-            $sdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196240"
-            $sdkInstaller = "$env:TEMP\sdk_setup.exe"
-            Invoke-WebRequest -Uri $sdkUrl -OutFile $sdkInstaller -UseBasicParsing
-            Start-Process -FilePath $sdkInstaller -ArgumentList "/quiet", "/norestart" -Wait
-            Remove-Item $sdkInstaller -Force
-        }
+        # Use winget to install WDK (more reliable)
+        Write-Host "Installing WDK via winget..."
+        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
         
-        # Download and install WDK with all components
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
-        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
+        # Wait for installation to complete
+        Start-Sleep -Seconds 30
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
-        
-        Write-Host "Installing WDK with kernel components..."
-        # Install with all features including kernel-mode development
-        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/features", "+" -Wait
+        # Refresh environment variables
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
         Write-Host "WDK installation completed"
-        Remove-Item $wdkInstaller -Force
         
         # Verify kernel components installation
         Write-Host "Verifying kernel components..."
-        $wdkKmPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.26100.0\km"
-        if (Test-Path $wdkKmPath) {
-            Write-Host "✅ Kernel-mode components found at: $wdkKmPath"
-        } else {
-            Write-Host "❌ Kernel-mode components not found, checking all versions..."
-            Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -Directory | ForEach-Object {
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "✅ WDK found at: $wdkPath"
+            Get-ChildItem -Path "$wdkPath\Include" -Directory | ForEach-Object {
                 $kmPath = "$($_.FullName)\km"
                 if (Test-Path $kmPath) {
-                    Write-Host "✅ Found km directory in: $($_.Name)"
+                    Write-Host "✅ Found kernel-mode (km) directory in: $($_.Name)"
                 }
             }
+        } else {
+            Write-Host "❌ WDK not found"
+            exit 1
         }
     
     - name: Verify WDK installation
@@ -144,48 +132,36 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Install Windows Driver Kit (WDK)
+      shell: pwsh
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # First, install Windows SDK if not present
-        Write-Host "Checking Windows SDK..."
-        $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
-        if (!(Test-Path $sdkPath)) {
-            Write-Host "Installing Windows SDK..."
-            $sdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196240"
-            $sdkInstaller = "$env:TEMP\sdk_setup.exe"
-            Invoke-WebRequest -Uri $sdkUrl -OutFile $sdkInstaller -UseBasicParsing
-            Start-Process -FilePath $sdkInstaller -ArgumentList "/quiet", "/norestart" -Wait
-            Remove-Item $sdkInstaller -Force
-        }
+        # Use winget to install WDK (more reliable)
+        Write-Host "Installing WDK via winget..."
+        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
         
-        # Download and install WDK with all components
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
-        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
+        # Wait for installation to complete
+        Start-Sleep -Seconds 30
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
-        
-        Write-Host "Installing WDK with kernel components..."
-        # Install with all features including kernel-mode development
-        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/features", "+" -Wait
+        # Refresh environment variables
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
         Write-Host "WDK installation completed"
-        Remove-Item $wdkInstaller -Force
         
         # Verify kernel components installation
         Write-Host "Verifying kernel components..."
-        $wdkKmPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.26100.0\km"
-        if (Test-Path $wdkKmPath) {
-            Write-Host "✅ Kernel-mode components found at: $wdkKmPath"
-        } else {
-            Write-Host "❌ Kernel-mode components not found, checking all versions..."
-            Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -Directory | ForEach-Object {
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "✅ WDK found at: $wdkPath"
+            Get-ChildItem -Path "$wdkPath\Include" -Directory | ForEach-Object {
                 $kmPath = "$($_.FullName)\km"
                 if (Test-Path $kmPath) {
-                    Write-Host "✅ Found km directory in: $($_.Name)"
+                    Write-Host "✅ Found kernel-mode (km) directory in: $($_.Name)"
                 }
             }
+        } else {
+            Write-Host "❌ WDK not found"
+            exit 1
         }
     
     - name: Run CodeQL Analysis
@@ -220,48 +196,36 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Install Windows Driver Kit (WDK)
+      shell: pwsh
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # First, install Windows SDK if not present
-        Write-Host "Checking Windows SDK..."
-        $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
-        if (!(Test-Path $sdkPath)) {
-            Write-Host "Installing Windows SDK..."
-            $sdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196240"
-            $sdkInstaller = "$env:TEMP\sdk_setup.exe"
-            Invoke-WebRequest -Uri $sdkUrl -OutFile $sdkInstaller -UseBasicParsing
-            Start-Process -FilePath $sdkInstaller -ArgumentList "/quiet", "/norestart" -Wait
-            Remove-Item $sdkInstaller -Force
-        }
+        # Use winget to install WDK (more reliable)
+        Write-Host "Installing WDK via winget..."
+        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
         
-        # Download and install WDK with all components
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
-        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
+        # Wait for installation to complete
+        Start-Sleep -Seconds 30
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
-        
-        Write-Host "Installing WDK with kernel components..."
-        # Install with all features including kernel-mode development
-        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/features", "+" -Wait
+        # Refresh environment variables
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
         Write-Host "WDK installation completed"
-        Remove-Item $wdkInstaller -Force
         
         # Verify kernel components installation
         Write-Host "Verifying kernel components..."
-        $wdkKmPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.26100.0\km"
-        if (Test-Path $wdkKmPath) {
-            Write-Host "✅ Kernel-mode components found at: $wdkKmPath"
-        } else {
-            Write-Host "❌ Kernel-mode components not found, checking all versions..."
-            Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -Directory | ForEach-Object {
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "✅ WDK found at: $wdkPath"
+            Get-ChildItem -Path "$wdkPath\Include" -Directory | ForEach-Object {
                 $kmPath = "$($_.FullName)\km"
                 if (Test-Path $kmPath) {
-                    Write-Host "✅ Found km directory in: $($_.Name)"
+                    Write-Host "✅ Found kernel-mode (km) directory in: $($_.Name)"
                 }
             }
+        } else {
+            Write-Host "❌ WDK not found"
+            exit 1
         }
     
     - name: Install BinSkim
@@ -322,48 +286,36 @@ jobs:
       uses: lukka/get-cmake@latest
     
     - name: Install Windows Driver Kit (WDK)
+      shell: pwsh
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # First, install Windows SDK if not present
-        Write-Host "Checking Windows SDK..."
-        $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
-        if (!(Test-Path $sdkPath)) {
-            Write-Host "Installing Windows SDK..."
-            $sdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196240"
-            $sdkInstaller = "$env:TEMP\sdk_setup.exe"
-            Invoke-WebRequest -Uri $sdkUrl -OutFile $sdkInstaller -UseBasicParsing
-            Start-Process -FilePath $sdkInstaller -ArgumentList "/quiet", "/norestart" -Wait
-            Remove-Item $sdkInstaller -Force
-        }
+        # Use winget to install WDK (more reliable)
+        Write-Host "Installing WDK via winget..."
+        winget install --id Microsoft.WindowsDriverKit --exact --accept-source-agreements --accept-package-agreements --silent
         
-        # Download and install WDK with all components
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
-        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
+        # Wait for installation to complete
+        Start-Sleep -Seconds 30
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
-        
-        Write-Host "Installing WDK with kernel components..."
-        # Install with all features including kernel-mode development
-        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/features", "+" -Wait
+        # Refresh environment variables
+        $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
         
         Write-Host "WDK installation completed"
-        Remove-Item $wdkInstaller -Force
         
         # Verify kernel components installation
         Write-Host "Verifying kernel components..."
-        $wdkKmPath = "${env:ProgramFiles(x86)}\Windows Kits\10\Include\10.0.26100.0\km"
-        if (Test-Path $wdkKmPath) {
-            Write-Host "✅ Kernel-mode components found at: $wdkKmPath"
-        } else {
-            Write-Host "❌ Kernel-mode components not found, checking all versions..."
-            Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\Include" -Directory | ForEach-Object {
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "✅ WDK found at: $wdkPath"
+            Get-ChildItem -Path "$wdkPath\Include" -Directory | ForEach-Object {
                 $kmPath = "$($_.FullName)\km"
                 if (Test-Path $kmPath) {
-                    Write-Host "✅ Found km directory in: $($_.Name)"
+                    Write-Host "✅ Found kernel-mode (km) directory in: $($_.Name)"
                 }
             }
+        } else {
+            Write-Host "❌ WDK not found"
+            exit 1
         }
     
     - name: Download build artifacts
