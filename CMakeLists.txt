@@ -22,22 +22,26 @@ set(INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Opción para construir versión mock (sin WDK)
+option(BUILD_MOCK_DRIVER "Construir versión mock sin WDK" OFF)
+
 # Verificar si estamos en Windows
 if(NOT WIN32)
-    message(FATAL_ERROR "Este proyecto solo puede compilarse en Windows con WDK")
+    message(FATAL_ERROR "Este proyecto solo puede compilarse en Windows")
 endif()
 
-# Configuración del compilador para drivers
+# Configuración del compilador
 if(MSVC)
-    # Opciones del compilador para drivers de kernel
-    add_compile_options(/kernel)
-    add_compile_options(/GS-)
-    add_compile_options(/Gz)
-    add_compile_options(/Oi)
-    add_compile_options(/Oy-)
+    if(NOT BUILD_MOCK_DRIVER)
+        # Opciones del compilador para drivers de kernel (solo con WDK)
+        add_compile_options(/kernel)
+        add_compile_options(/GS-)
+        add_compile_options(/Gz)
+        add_compile_options(/Oi)
+        add_compile_options(/Oy-)
+    endif()
     
     # Definiciones del preprocesador
-    add_compile_definitions(_KERNEL_MODE)
     add_compile_definitions(DBG=1)
 endif()
 
@@ -45,18 +49,29 @@ endif()
 add_library(${DRIVER_NAME} MODULE ${DRIVER_SOURCES})
 
 # Configurar propiedades del driver
-set_target_properties(${DRIVER_NAME} PROPERTIES
-    SUFFIX ".sys"
-    LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry"
-)
+if(BUILD_MOCK_DRIVER)
+    # Construir como aplicación de consola para pruebas
+    set_target_properties(${DRIVER_NAME} PROPERTIES
+        SUFFIX ".exe"
+    )
+    message(STATUS "==========================================")
+    message(STATUS "MODO MOCK ACTIVADO - Sin WDK")
+    message(STATUS "Construyendo aplicación de prueba en lugar de driver")
+    message(STATUS "==========================================")
+else()
+    # Construir como driver real
+    set_target_properties(${DRIVER_NAME} PROPERTIES
+        SUFFIX ".sys"
+        LINK_FLAGS "/DRIVER /SUBSYSTEM:NATIVE /ENTRY:DriverEntry"
+    )
+endif()
 
 # Incluir directorios de encabezados
 target_include_directories(${DRIVER_NAME} PRIVATE ${INCLUDE_DIRS})
 
-# Incluir directorios de WDK (deben estar instalados)
-# NOTA: Ajustar estas rutas según tu instalación de WDK
-if(EXISTS "C:/Program Files (x86)/Windows Kits/10/Include")
-    target_include_directories(${DRIVER_NAME} PRIVATE 
+# Incluir directorios de WDK (solo si están disponibles y no es mock)
+if(NOT BUILD_MOCK_DRIVER AND EXISTS "C:/Program Files (x86)/Windows Kits/10/Include")
+    target_include_directories(${DRIVER_NAME} PRIVATE
         "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/km"
         "C:/Program Files (x86)/Windows Kits/10/Include/10.0.22000.0/shared"
     )
@@ -64,14 +79,29 @@ if(EXISTS "C:/Program Files (x86)/Windows Kits/10/Include")
     target_link_directories(${DRIVER_NAME} PRIVATE
         "C:/Program Files (x86)/Windows Kits/10/Lib/10.0.22000.0/km/x64"
     )
+elseif(BUILD_MOCK_DRIVER)
+    # Para modo mock, usar headers mock predefinidos
+    message(STATUS "Usando headers mock para modo sin WDK")
+    
+    target_include_directories(${DRIVER_NAME} PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/mock"
+    )
 endif()
 
 # Librerías necesarias
-target_link_libraries(${DRIVER_NAME} 
-    ntoskrnl.lib
-    hal.lib
-    wmilib.lib
-)
+if(NOT BUILD_MOCK_DRIVER)
+    target_link_libraries(${DRIVER_NAME}
+        ntoskrnl.lib
+        hal.lib
+        wmilib.lib
+    )
+else()
+    # Para modo mock, usar librerías estándar
+    target_link_libraries(${DRIVER_NAME}
+        kernel32.lib
+        user32.lib
+    )
+endif()
 
 # Mensaje informativo
 message(STATUS "==========================================")
