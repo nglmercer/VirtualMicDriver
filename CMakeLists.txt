@@ -41,10 +41,23 @@ endif()
 # Find latest installed WDK version
 file(GLOB WDK_VERSIONS LIST_DIRECTORIES true "${WDK_INCLUDE_BASE_PATH}/*")
 list(SORT WDK_VERSIONS COMPARE NATURAL ORDER DESCENDING)
-list(GET WDK_VERSIONS 0 WDK_LATEST_VERSION)
 
-# Extract version number only
-get_filename_component(WDK_VERSION ${WDK_LATEST_VERSION} NAME)
+# Find a version that has kernel-mode components
+set(WDK_VERSION_FOUND FALSE)
+foreach(WDK_VERSION_CANDIDATE ${WDK_VERSIONS})
+    get_filename_component(WDK_VERSION_NAME ${WDK_VERSION_CANDIDATE} NAME)
+    set(WDK_KM_TEST_PATH "${WDK_INCLUDE_BASE_PATH}/${WDK_VERSION_NAME}/km")
+    if(EXISTS "${WDK_KM_TEST_PATH}")
+        set(WDK_VERSION ${WDK_VERSION_NAME})
+        set(WDK_LATEST_VERSION ${WDK_VERSION_CANDIDATE})
+        set(WDK_VERSION_FOUND TRUE)
+        break()
+    endif()
+endforeach()
+
+if(NOT WDK_VERSION_FOUND)
+    message(FATAL_ERROR "No WDK version with kernel-mode components found")
+endif()
 
 message(STATUS "WDK version detected: ${WDK_VERSION}")
 
