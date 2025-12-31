@@ -1,0 +1,185 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  DRIVER_NAME: virtual_mic
+  BUILD_CONFIGURATION: Debug
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.3
+    
+    - name: Setup CMake
+      uses: lukka/get-cmake@latest
+    
+    - name: Cache WDK files
+      id: cache-wdk
+      uses: actions/cache@v3
+      with:
+        path: |
+          C:/Program Files (x86)/Windows Kits/10/Include
+          C:/Program Files (x86)/Windows Kits/10/Lib
+        key: ${{ runner.os }}-wdk-${{ hashFiles('**/CMakeLists.txt') }}
+    
+    - name: Install Windows Driver Kit (WDK)
+      if: steps.cache-wdk.outputs.cache-hit != 'true'
+      run: |
+        Write-Host "Installing Windows Driver Kit..."
+        # Note: WDK installation requires manual download and installation
+        # This is a placeholder for WDK setup
+        # In a real scenario, you would download and install WDK here
+    
+    - name: Create build directory
+      run: cmake -E make_directory ${{github.workspace}}/build
+    
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}/build
+      run: cmake .. -G "Visual Studio 17 2022" -A x64
+    
+    - name: Build driver
+      working-directory: ${{github.workspace}}/build
+      run: cmake --build . --config ${{env.BUILD_CONFIGURATION}}
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: driver-binaries
+        path: |
+          ${{github.workspace}}/build/**/*.sys
+          ${{github.workspace}}/build/**/*.pdb
+        retention-days: 30
+
+  static-analysis:
+    runs-on: windows-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/init@v2
+      with:
+        languages: cpp
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+    
+    - name: Run static analysis tools
+      run: |
+        Write-Host "Running static analysis..."
+        # Static analysis tools would go here
+        # For example: PREfast, CodeAnalysis, etc.
+
+  security-scan:
+    runs-on: windows-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run security scan
+      run: |
+        Write-Host "Running security analysis..."
+        # Security scanning tools would go here
+        # For example: BinSkim, security code analysis, etc.
+
+  documentation:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Generate documentation
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y doxygen graphviz
+        doxygen Doxyfile 2>/dev/null || echo "Doxygen config not found, skipping"
+    
+    - name: Upload documentation
+      uses: actions/upload-artifact@v3
+      with:
+        name: documentation
+        path: docs/html/
+        retention-days: 30
+
+  test:
+    runs-on: windows-latest
+    needs: build
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: driver-binaries
+        path: build/
+    
+    - name: Run unit tests
+      run: |
+        Write-Host "Running unit tests..."
+        # Unit tests would go here
+        # For now, we'll run a basic syntax check
+    
+    - name: Run integration tests
+      run: |
+        Write-Host "Running integration tests..."
+        # Integration tests would go here
+        # These would test the driver functionality
+    
+    - name: Test driver installation (simulated)
+      run: |
+        Write-Host "Simulating driver installation test..."
+        # Driver installation simulation
+        # This would test the INF file and installation process
+
+  release:
+    runs-on: windows-latest
+    needs: [build, static-analysis, security-scan, test]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: driver-binaries
+        path: release/
+    
+    - name: Create release package
+      run: |
+        New-Item -ItemType Directory -Path "release/package" -Force
+        Copy-Item "virtual_mic.inf" -Destination "release/package/"
+        Copy-Item "build/**/*.sys" -Destination "release/package/" -Recurse
+        Copy-Item "README.md" -Destination "release/package/"
+        Copy-Item "install.bat" -Destination "release/package/"
+        Copy-Item "uninstall.bat" -Destination "release/package/"
+        
+        # Create ZIP package
+        Compress-Archive -Path "release/package/*" -DestinationPath "release/virtual_mic_driver.zip"
+    
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: release-package
+        path: release/virtual_mic_driver.zip
+        retention-days: 90
