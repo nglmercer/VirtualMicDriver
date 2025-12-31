@@ -20,14 +20,14 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v1.3
+      uses: microsoft/setup-msbuild@v2
     
     - name: Setup CMake
       uses: lukka/get-cmake@latest
     
     - name: Cache WDK files
       id: cache-wdk
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           C:/Program Files (x86)/Windows Kits/10/Include
@@ -54,7 +54,7 @@ jobs:
       run: cmake --build . --config ${{env.BUILD_CONFIGURATION}}
     
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: driver-binaries
         path: |
@@ -71,12 +71,12 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Run CodeQL Analysis
-      uses: github/codeql-action/init@v2
+      uses: github/codeql-action/init@v3
       with:
         languages: cpp
     
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      uses: github/codeql-action/analyze@v3
     
     - name: Run static analysis tools
       run: |
@@ -112,7 +112,7 @@ jobs:
         doxygen Doxyfile 2>/dev/null || echo "Doxygen config not found, skipping"
     
     - name: Upload documentation
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: documentation
         path: docs/html/
@@ -127,7 +127,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: driver-binaries
         path: build/
@@ -160,7 +160,7 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: driver-binaries
         path: release/
@@ -178,7 +178,7 @@ jobs:
         Compress-Archive -Path "release/package/*" -DestinationPath "release/virtual_mic_driver.zip"
     
     - name: Upload release artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: release-package
         path: release/virtual_mic_driver.zip
