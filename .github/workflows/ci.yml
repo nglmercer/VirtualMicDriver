@@ -30,33 +30,45 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Download WDK ISO
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
-        $wdkIso = "$env:TEMP\wdk.iso"
-        $mountPoint = "$env:TEMP\wdk_mount"
+        # Check if WDK is already installed
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "WDK already installed at $wdkPath"
+            $hasKernel = Get-ChildItem -Path "$wdkPath\Include" -Directory | Where-Object { Test-Path "$($_.FullName)\km" }
+            if ($hasKernel) {
+                Write-Host "✅ Kernel-mode components already present"
+            } else {
+                Write-Host "⚠️  WDK found but kernel-mode components missing"
+            }
+        }
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        # Download WDK web installer
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
+        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
         
-        # Create mount point
-        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        Write-Host "Downloading WDK installer from $wdkUrl..."
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
         
-        Write-Host "Mounting WDK ISO..."
-        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
-        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
-        $drivePath = "${driveLetter}:\"
+        # Verify file was downloaded
+        if (!(Test-Path $wdkInstaller)) {
+            Write-Host "❌ Failed to download WDK installer"
+            exit 1
+        }
         
-        Write-Host "Installing WDK from $drivePath..."
-        # Run the WDK installer with silent mode
-        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
+        $fileSize = (Get-Item $wdkInstaller).Length
+        Write-Host "Downloaded installer: $fileSize bytes"
+        
+        Write-Host "Installing WDK (this may take several minutes)..."
+        # Run installer in quiet mode without features parameter (installs all components)
+        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/passive" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 60
+        Write-Host "Waiting for WDK installation to complete..."
+        Start-Sleep -Seconds 120
         
-        # Dismount ISO
-        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
-        Remove-Item $wdkIso -Force
-        Remove-Item $mountPoint -Force -Recurse
+        # Clean up installer
+        Remove-Item $wdkInstaller -Force -ErrorAction SilentlyContinue
         
         Write-Host "WDK installation completed"
         
@@ -154,33 +166,45 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Download WDK ISO
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
-        $wdkIso = "$env:TEMP\wdk.iso"
-        $mountPoint = "$env:TEMP\wdk_mount"
+        # Check if WDK is already installed
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "WDK already installed at $wdkPath"
+            $hasKernel = Get-ChildItem -Path "$wdkPath\Include" -Directory | Where-Object { Test-Path "$($_.FullName)\km" }
+            if ($hasKernel) {
+                Write-Host "✅ Kernel-mode components already present"
+            } else {
+                Write-Host "⚠️  WDK found but kernel-mode components missing"
+            }
+        }
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        # Download WDK web installer
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
+        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
         
-        # Create mount point
-        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        Write-Host "Downloading WDK installer from $wdkUrl..."
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
         
-        Write-Host "Mounting WDK ISO..."
-        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
-        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
-        $drivePath = "${driveLetter}:\"
+        # Verify file was downloaded
+        if (!(Test-Path $wdkInstaller)) {
+            Write-Host "❌ Failed to download WDK installer"
+            exit 1
+        }
         
-        Write-Host "Installing WDK from $drivePath..."
-        # Run the WDK installer with silent mode
-        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
+        $fileSize = (Get-Item $wdkInstaller).Length
+        Write-Host "Downloaded installer: $fileSize bytes"
+        
+        Write-Host "Installing WDK (this may take several minutes)..."
+        # Run installer in quiet mode without features parameter (installs all components)
+        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/passive" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 60
+        Write-Host "Waiting for WDK installation to complete..."
+        Start-Sleep -Seconds 120
         
-        # Dismount ISO
-        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
-        Remove-Item $wdkIso -Force
-        Remove-Item $mountPoint -Force -Recurse
+        # Clean up installer
+        Remove-Item $wdkInstaller -Force -ErrorAction SilentlyContinue
         
         Write-Host "WDK installation completed"
         
@@ -236,33 +260,45 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Download WDK ISO
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
-        $wdkIso = "$env:TEMP\wdk.iso"
-        $mountPoint = "$env:TEMP\wdk_mount"
+        # Check if WDK is already installed
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "WDK already installed at $wdkPath"
+            $hasKernel = Get-ChildItem -Path "$wdkPath\Include" -Directory | Where-Object { Test-Path "$($_.FullName)\km" }
+            if ($hasKernel) {
+                Write-Host "✅ Kernel-mode components already present"
+            } else {
+                Write-Host "⚠️  WDK found but kernel-mode components missing"
+            }
+        }
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        # Download WDK web installer
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
+        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
         
-        # Create mount point
-        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        Write-Host "Downloading WDK installer from $wdkUrl..."
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
         
-        Write-Host "Mounting WDK ISO..."
-        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
-        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
-        $drivePath = "${driveLetter}:\"
+        # Verify file was downloaded
+        if (!(Test-Path $wdkInstaller)) {
+            Write-Host "❌ Failed to download WDK installer"
+            exit 1
+        }
         
-        Write-Host "Installing WDK from $drivePath..."
-        # Run the WDK installer with silent mode
-        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
+        $fileSize = (Get-Item $wdkInstaller).Length
+        Write-Host "Downloaded installer: $fileSize bytes"
+        
+        Write-Host "Installing WDK (this may take several minutes)..."
+        # Run installer in quiet mode without features parameter (installs all components)
+        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/passive" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 60
+        Write-Host "Waiting for WDK installation to complete..."
+        Start-Sleep -Seconds 120
         
-        # Dismount ISO
-        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
-        Remove-Item $wdkIso -Force
-        Remove-Item $mountPoint -Force -Recurse
+        # Clean up installer
+        Remove-Item $wdkInstaller -Force -ErrorAction SilentlyContinue
         
         Write-Host "WDK installation completed"
         
@@ -344,33 +380,45 @@ jobs:
       run: |
         Write-Host "Installing Windows Driver Kit (WDK) with kernel components..."
         
-        # Download WDK ISO
-        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2268326"
-        $wdkIso = "$env:TEMP\wdk.iso"
-        $mountPoint = "$env:TEMP\wdk_mount"
+        # Check if WDK is already installed
+        $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
+        if (Test-Path $wdkPath) {
+            Write-Host "WDK already installed at $wdkPath"
+            $hasKernel = Get-ChildItem -Path "$wdkPath\Include" -Directory | Where-Object { Test-Path "$($_.FullName)\km" }
+            if ($hasKernel) {
+                Write-Host "✅ Kernel-mode components already present"
+            } else {
+                Write-Host "⚠️  WDK found but kernel-mode components missing"
+            }
+        }
         
-        Write-Host "Downloading WDK from $wdkUrl..."
-        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkIso -UseBasicParsing
+        # Download WDK web installer
+        $wdkUrl = "https://go.microsoft.com/fwlink/?linkid=2196241"
+        $wdkInstaller = "$env:TEMP\wdk_setup.exe"
         
-        # Create mount point
-        New-Item -ItemType Directory -Path $mountPoint -Force | Out-Null
+        Write-Host "Downloading WDK installer from $wdkUrl..."
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $wdkUrl -OutFile $wdkInstaller -UseBasicParsing
         
-        Write-Host "Mounting WDK ISO..."
-        Mount-DiskImage -ImagePath $wdkIso -StorageType ISO | Out-Null
-        $driveLetter = (Get-DiskImage -ImagePath $wdkIso | Get-Volume).DriveLetter
-        $drivePath = "${driveLetter}:\"
+        # Verify file was downloaded
+        if (!(Test-Path $wdkInstaller)) {
+            Write-Host "❌ Failed to download WDK installer"
+            exit 1
+        }
         
-        Write-Host "Installing WDK from $drivePath..."
-        # Run the WDK installer with silent mode
-        Start-Process -FilePath "$drivePath\Installers\WDKSetup.exe" -ArgumentList "/quiet", "/norestart" -Wait
+        $fileSize = (Get-Item $wdkInstaller).Length
+        Write-Host "Downloaded installer: $fileSize bytes"
+        
+        Write-Host "Installing WDK (this may take several minutes)..."
+        # Run installer in quiet mode without features parameter (installs all components)
+        Start-Process -FilePath $wdkInstaller -ArgumentList "/quiet", "/norestart", "/passive" -Wait
         
         # Wait for installation to complete
-        Start-Sleep -Seconds 60
+        Write-Host "Waiting for WDK installation to complete..."
+        Start-Sleep -Seconds 120
         
-        # Dismount ISO
-        Dismount-DiskImage -ImagePath $wdkIso | Out-Null
-        Remove-Item $wdkIso -Force
-        Remove-Item $mountPoint -Force -Recurse
+        # Clean up installer
+        Remove-Item $wdkInstaller -Force -ErrorAction SilentlyContinue
         
         Write-Host "WDK installation completed"
         
