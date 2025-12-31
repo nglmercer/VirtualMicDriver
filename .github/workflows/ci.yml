@@ -25,16 +25,28 @@ jobs:
     - name: Setup CMake
       uses: lukka/get-cmake@latest
     
-    - name: Install Windows Driver Kit (WDK)
+    - name: Setup Windows Driver Kit (WDK)
+      uses: microsoft/windows-driver-kit-action@v2
+      with:
+        wdk-version: 10.0.26100.0
+        # Use WDK content to build drivers
+    
+    - name: Verify WDK installation
       run: |
-        Write-Host "Installing Windows Driver Kit..."
-        # Windows-latest runners come with WDK pre-installed
+        Write-Host "Verifying WDK installation..."
         $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
         if (Test-Path $wdkPath) {
           Write-Host "✅ WDK found at: $wdkPath"
           # List available versions
           Get-ChildItem -Path "$wdkPath\Include" | ForEach-Object {
             Write-Host "  Available version: $($_.Name)"
+            # Check if km directory exists (kernel-mode)
+            $kmPath = "$wdkPath\Include\$($_.Name)\km"
+            if (Test-Path $kmPath) {
+              Write-Host "    ✅ Kernel-mode (km) directory found"
+            } else {
+              Write-Host "    ❌ Kernel-mode (km) directory NOT found"
+            }
           }
         } else {
           Write-Host "❌ WDK not found"
@@ -88,9 +100,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Install Windows Driver Kit (WDK)
-      run: |
-        Write-Host "Windows Driver Kit is available on windows-latest runner"
+    - name: Setup Windows Driver Kit (WDK)
+      uses: microsoft/windows-driver-kit-action@v2
+      with:
+        wdk-version: 10.0.26100.0
     
     - name: Run CodeQL Analysis
       uses: github/codeql-action/init@v3
@@ -115,9 +128,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Install Windows Driver Kit (WDK)
-      run: |
-        Write-Host "Windows Driver Kit is available on windows-latest runner"
+    - name: Setup Windows Driver Kit (WDK)
+      uses: microsoft/windows-driver-kit-action@v2
+      with:
+        wdk-version: 10.0.26100.0
     
     - name: Install BinSkim
       run: |
@@ -170,9 +184,10 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Install Windows Driver Kit (WDK)
-      run: |
-        Write-Host "Windows Driver Kit is available on windows-latest runner"
+    - name: Setup Windows Driver Kit (WDK)
+      uses: microsoft/windows-driver-kit-action@v2
+      with:
+        wdk-version: 10.0.26100.0
     
     - name: Download build artifacts
       uses: actions/download-artifact@v4

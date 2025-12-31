@@ -51,6 +51,65 @@ VirtualMicDriver/
 
 ## 🔧 Requisitos de Desarrollo
 
+### 🚨 Solución de Problemas de Build
+
+#### Error: "WINDOWS DRIVER KIT (WDK) NOT FOUND"
+Si obtienes este error al ejecutar CMake:
+
+```
+CMake Error at CMakeLists.txt:58 (message):
+  ==========================================
+  WINDOWS DRIVER KIT (WDK) NOT FOUND
+  ==========================================
+```
+
+**Causa:** Solo tienes Windows SDK instalado, no el Windows Driver Kit completo.
+
+**Solución:**
+1. Ejecuta el script de verificación:
+   ```powershell
+   .\scripts\setup_build_env.ps1 -Verbose
+   ```
+
+2. Esto te mostrará qué versiones están instaladas y cuál tiene el directorio `km/`
+
+3. Descarga e instala el WDK completo:
+   ```
+   https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk
+   ```
+
+4. En el instalador, asegúrate de seleccionar:
+   - ✓ Windows Driver Kit (WDK)
+   - ✓ Windows Driver Kit - Windows 10, 11, and Server 2022
+   - ✓ Visual Studio extension para drivers
+
+**Verificación manual:**
+```powershell
+# Verificar si tienes el directorio km/ (kernel-mode)
+Test-Path "C:\Program Files (x86)\Windows Kits\10\Include\10.*\km"
+
+# Debe retornar: True
+# Si retorna False, solo tienes Windows SDK, no WDK completo
+```
+
+#### Error en GitHub Actions
+Si el CI/CD falla en GitHub Actions con el mismo error, el workflow ya ha sido actualizado para instalar el WDK correctamente usando `microsoft/windows-driver-kit-action@v2`.
+
+#### Otros errores comunes
+
+**Error: "The C compiler identification is unknown"**
+- Solución: Asegúrate de tener Visual Studio 2022 con "Desktop development with C++" instalado
+
+**Error: "Could not find Visual Studio"**
+- Solución: Instala Visual Studio 2022 Community o superior con el workload de C++
+
+**Error: "Test signing is not enabled"**
+- Solución: Ejecuta como administrador:
+  ```cmd
+  bcdedit /set testsigning on
+  ```
+  Y reinicia tu computadora
+
 ### Software Necesario
 1. **Windows 10/11 x64** con modo de prueba activado
 2. **Visual Studio 2019/2022** con workload "Desktop development with C++"

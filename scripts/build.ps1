@@ -9,6 +9,9 @@ param(
     [switch]$Help = $false
 )
 
+# Driver name configuration
+$DriverName = "virtual_mic"
+
 function Show-Help {
     Write-Host "Uso: .\build.ps1 [opciones]"
     Write-Host ""
@@ -34,6 +37,7 @@ function Test-Prerequisites {
         Write-Error "CMake no está instalado o no está en el PATH"
         return $false
     }
+    Write-Host "✅ CMake encontrado: $($cmakePath.Source)"
     
     # Verificar Visual Studio
     $msbuildPath = Get-Command msbuild -ErrorAction SilentlyContinue
@@ -41,12 +45,36 @@ function Test-Prerequisites {
         Write-Error "MSBuild no está instalado o no está en el PATH"
         return $false
     }
+    Write-Host "✅ MSBuild encontrado: $($msbuildPath.Source)"
     
-    # Verificar WDK (simplificado)
+    # Verificar WDK completo (con directorio km/)
     $wdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10"
     if (-not (Test-Path $wdkPath)) {
-        Write-Warning "Windows Driver Kit (WDK) no encontrado en la ubicación esperada"
-        Write-Warning "Asegúrese de tener WDK instalado para compilar drivers de kernel"
+        Write-Error "Windows Driver Kit (WDK) no encontrado en: $wdkPath"
+        Write-Error "Por favor, ejecute: .\scripts\setup_build_env.ps1 -Verbose"
+        Write-Error "E instale el WDK completo desde: https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk"
+        return $false
+    }
+    
+    # Verificar que existe al menos una versión con directorio km/
+    $hasWdk = $false
+    Get-ChildItem -Path "$wdkPath\Include" -ErrorAction SilentlyContinue | ForEach-Object {
+        $kmPath = "$($_.FullName)\km"
+        if (Test-Path $kmPath) {
+            $hasWdk = $true
+            Write-Host "✅ WDK completo encontrado: versión $($_.Name)"
+        }
+    }
+    
+    if (-not $hasWdk) {
+        Write-Error "❌ ERROR: No se encontró el WDK completo (falta directorio km/)"
+        Write-Error "   Solo tiene Windows SDK instalado, no el Windows Driver Kit completo"
+        Write-Error ""
+        Write-Error "   SOLUCIÓN:"
+        Write-Error "   1. Descargue el WDK: https://learn.microsoft.com/en-us/windows-hardware/drivers/download-the-wdk"
+        Write-Error "   2. Ejecute el instalador y seleccione 'Windows Driver Kit (WDK)'"
+        Write-Error "   3. Verifique la instalación ejecutando: .\scripts\setup_build_env.ps1 -Verbose"
+        return $false
     }
     
     Write-Host "✅ Prerrequisitos verificados"
@@ -161,27 +189,43 @@ function Invoke-Tests {
 function Show-BuildResults {
     Write-Host "`n=== Resultados de la compilación ==="
     
-    $driverPath = "build\$Configuration\$DriverName.sys"
-    if (Test-Path $driverPath) {
-        Write-Host "✅ Driver compilado exitosamente:"
-        Write-Host "   Ruta: $driverPath"
-        
-        $fileInfo = Get-Item $driverPath
-        Write-Host "   Tamaño: $([math]::Round($fileInfo.Length / 1KB, 2)) KB"
-        Write-Host "   Fecha: $($fileInfo.LastWriteTime)"
+    # Buscar el archivo .sys en el directorio build
+    $driverFiles = Get-ChildItem -Path "build" -Filter "$DriverName.sys" -Recurse -ErrorAction SilentlyContinue
+    
+    if ($driverFiles) {
+        foreach ($driverFile in $driverFiles) {
+            Write-Host "✅ Driver compilado exitosamente:"
+            Write-Host "   Ruta: $($driverFile.FullName)"
+            
+            $fileInfo = Get-Item $driverFile.FullName
+            Write-Host "   Tamaño: $([math]::Round($fileInfo.Length / 1KB, 2)) KB"
+            Write-Host "   Fecha: $($fileInfo.LastWriteTime)"
+        }
     } else {
-        Write-Host "❌ Driver no encontrado en: $driverPath"
+        Write-Host "❌ Driver no encontrado en el directorio build/"
+        Write-Host "   Buscando en: build\$Configuration\$DriverName.sys"
+        $expectedPath = "build\$Configuration\$DriverName.sys"
+        if (Test-Path $expectedPath) {
+            Write-Host "   ✅ Encontrado en: $expectedPath"
+        } else {
+            Write-Host "   ❌ No encontrado"
+        }
     }
     
-    # Buscar otros archivos generados
-    $pdbPath = "build\$Configuration\$DriverName.pdb"
-    if (Test-Path $pdbPath) {
-        Write-Host "✅ Archivo PDB generado: $pdbName"
+    # Buscar archivos PDB
+    $pdbFiles = Get-ChildItem -Path "build" -Filter "$DriverName.pdb" -Recurse -ErrorAction SilentlyContinue
+    if ($pdbFiles) {
+        foreach ($pdbFile in $pdbFiles) {
+            Write-Host "✅ Archivo PDB generado: $($pdbFile.FullName)"
+        }
     }
     
+    # Verificar archivo INF
     $infPath = "virtual_mic.inf"
     if (Test-Path $infPath) {
         Write-Host "✅ Archivo INF encontrado: $infPath"
+    } else {
+        Write-Host "⚠️  Archivo INF no encontrado: $infPath"
     }
 }
 
@@ -193,6 +237,7 @@ if ($Help) {
 
 Write-Host "=========================================="
 Write-Host "Virtual Microphone Driver Build Script"
+Write-Host "Driver: $DriverName"
 Write-Host "Configuración: $Configuration"
 Write-Host "Plataforma: $Platform"
 Write-Host "=========================================="
